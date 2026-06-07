@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { PlaneGizmo } from "./PlaneGizmo";
+import { PlaneGizmo } from "./PlaneGizmo.ts";
 
 export class SlicingPlane {
   readonly group: THREE.Group;

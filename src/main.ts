@@ -2,11 +2,11 @@ import * as THREE from "three";
 import "./style.css";
 
 import { loadStlFile } from "./loaders/loadStlFile.ts";
-import { getPlaneSizeFromMesh } from "./mesh/meshPlacement";
-import { PlanePlacementController } from "./plane/PlanePlacementController";
+import { getPlaneSizeFromMesh } from "./mesh/meshPlacement.ts";
+import { PlanePlacementController } from "./plane/PlanePlacementController.ts";
 import { SlicingPlane } from "./plane/SlicingPlane.ts";
 import { Toolbar } from "./ui/Toolbar.ts";
-import { Viewer } from "./viewer/Viewer";
+import { Viewer } from "./viewer/Viewer.ts";
 
 const app = document.querySelector<HTMLDivElement>("#app");
 

@@ -1,7 +1,12 @@
 import * as THREE from "three";
-import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
-import { STLLoader } from "three/examples/jsm/loaders/STLLoader.js";
 import "./style.css";
+
+import { loadStlFile } from "./loaders/loadStlFile.ts";
+import { getPlaneSizeFromMesh } from "./mesh/meshPlacement";
+import { PlanePlacementController } from "./plane/PlanePlacementController";
+import { SlicingPlane } from "./plane/SlicingPlane.ts";
+import { Toolbar } from "./ui/Toolbar.ts";
+import { Viewer } from "./viewer/Viewer";
 
 const app = document.querySelector<HTMLDivElement>("#app");
 
@@ -9,41 +14,11 @@ if (!app) {
   throw new Error("Missing #app element");
 }
 
-const scene = new THREE.Scene();
-scene.background = new THREE.Color(0xf5f5f5);
-
-const camera = new THREE.PerspectiveCamera(
-  60,
-  window.innerWidth / window.innerHeight,
-  0.001,
-  10000
-);
-camera.position.set(3, 3, 5);
-
-const renderer = new THREE.WebGLRenderer({ antialias: true });
-renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setPixelRatio(window.devicePixelRatio);
-app.appendChild(renderer.domElement);
-
-const controls = new OrbitControls(camera, renderer.domElement);
-controls.enableDamping = false;
-
-const grid = new THREE.GridHelper(10, 10);
-scene.add(grid);
-
-const axes = new THREE.AxesHelper(3);
-scene.add(axes);
-
-const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 2.0);
-scene.add(hemiLight);
-
-const dirLight = new THREE.DirectionalLight(0xffffff, 2.0);
-dirLight.position.set(5, 10, 7);
-scene.add(dirLight);
-
-const loader = new STLLoader();
+const viewer = new Viewer(app);
+const toolbar = new Toolbar(app);
 
 let currentMesh: THREE.Mesh | null = null;
+let currentPlane: SlicingPlane | null = null;
 
 const meshMaterial = new THREE.MeshStandardMaterial({
   color: 0xdddddd,
@@ -52,113 +27,55 @@ const meshMaterial = new THREE.MeshStandardMaterial({
   side: THREE.DoubleSide,
 });
 
-const fileInput = document.createElement("input");
-fileInput.type = "file";
-fileInput.accept = ".stl";
-fileInput.style.display = "none";
+const planeController = new PlanePlacementController({
+  viewer,
+  getMesh: () => currentMesh,
+  getPlaneSize: () => {
+    if (!currentMesh) {
+      return 5;
+    }
 
-const loadButton = document.createElement("button");
-loadButton.textContent = "Load STL";
-loadButton.id = "load-button";
+    return getPlaneSizeFromMesh(currentMesh);
+  },
+  onPlaneCreated: (plane) => {
+    if (currentPlane) {
+      viewer.scene.remove(currentPlane.group);
+      currentPlane.dispose();
+    }
 
-const fileLabel = document.createElement("span");
-fileLabel.id = "file-label";
-fileLabel.textContent = "No file loaded";
-
-const toolbar = document.createElement("div");
-toolbar.id = "toolbar";
-toolbar.appendChild(loadButton);
-toolbar.appendChild(fileLabel);
-toolbar.appendChild(fileInput);
-app.appendChild(toolbar);
-
-loadButton.addEventListener("click", () => {
-  fileInput.click();
+    currentPlane = plane;
+    viewer.scene.add(plane.group);
+  },
+  setStatus: (message) => toolbar.setStatus(message),
 });
 
-fileInput.addEventListener("change", async () => {
-  const file = fileInput.files?.[0];
+toolbar.onLoadStl(async (file) => {
+  toolbar.setFileLabel(`Loading ${file.name}...`);
 
-  if (!file) {
-    return;
-  }
+  const geometry = await loadStlFile(file);
 
-  fileLabel.textContent = `Loading ${file.name}...`;
-
-  const buffer = await file.arrayBuffer();
-  const geometry = loader.parse(buffer);
-  geometry.rotateX(-Math.PI / 2);
-
-  geometry.computeVertexNormals();
-
-  centerGeometry(geometry);
-  displayGeometry(geometry);
-  frameObject(geometry);
-
-  fileLabel.textContent = file.name;
-});
-
-function centerGeometry(geometry: THREE.BufferGeometry) {
-  geometry.computeBoundingBox();
-
-  const box = geometry.boundingBox;
-  if (!box) {
-    return;
-  }
-
-  const center = new THREE.Vector3();
-  box.getCenter(center);
-
-  geometry.translate(-center.x, -box.min.y, -center.z);
-  geometry.computeBoundingBox();
-  geometry.computeBoundingSphere();
-}
-
-function displayGeometry(geometry: THREE.BufferGeometry) {
   if (currentMesh) {
-    scene.remove(currentMesh);
+    viewer.scene.remove(currentMesh);
     currentMesh.geometry.dispose();
   }
 
-  currentMesh = new THREE.Mesh(geometry, meshMaterial);
-  scene.add(currentMesh);
-}
-
-function frameObject(geometry: THREE.BufferGeometry) {
-  geometry.computeBoundingSphere();
-
-  const sphere = geometry.boundingSphere;
-  if (!sphere) {
-    return;
+  if (currentPlane) {
+    viewer.scene.remove(currentPlane.group);
+    currentPlane.dispose();
+    currentPlane = null;
+    planeController.clearPlane();
   }
 
-  const radius = sphere.radius;
-  const distance = Math.max(radius * 2.5, 2);
+  currentMesh = new THREE.Mesh(geometry, meshMaterial);
+  viewer.scene.add(currentMesh);
+  viewer.frameGeometry(geometry);
 
-  camera.position.set(distance, distance, distance);
-  camera.near = Math.max(radius / 1000, 0.001);
-  camera.far = Math.max(radius * 1000, 1000);
-  camera.updateProjectionMatrix();
+  toolbar.setFileLabel(file.name);
+  toolbar.setStatus("");
+});
 
-  controls.target.set(0, 0, 0);
-  controls.update();
+toolbar.onCreatePlane(() => {
+  planeController.startPlacement();
+});
 
-  grid.scale.setScalar(Math.max(radius, 1));
-}
-
-function onResize() {
-  camera.aspect = window.innerWidth / window.innerHeight;
-  camera.updateProjectionMatrix();
-
-  renderer.setSize(window.innerWidth, window.innerHeight);
-}
-
-window.addEventListener("resize", onResize);
-
-function animate() {
-  requestAnimationFrame(animate);
-  controls.update();
-  renderer.render(scene, camera);
-}
-
-animate();
+viewer.start();

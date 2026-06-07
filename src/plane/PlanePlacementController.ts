@@ -26,6 +26,7 @@ type PlanePlacementControllerArgs = {
   getMesh: () => THREE.Mesh | null;
   getPlaneSize: () => number;
   onPlaneCreated: (plane: SlicingPlane) => void;
+  onPlaneChanged: (plane: SlicingPlane) => void;
   setStatus: (message: string) => void;
 };
 
@@ -34,6 +35,7 @@ export class PlanePlacementController {
   private readonly getMesh: () => THREE.Mesh | null;
   private readonly getPlaneSize: () => number;
   private readonly onPlaneCreated: (plane: SlicingPlane) => void;
+  private readonly onPlaneChanged: (plane: SlicingPlane) => void;
   private readonly setStatus: (message: string) => void;
 
   private placementState: PlacementState = "idle";
@@ -46,6 +48,7 @@ export class PlanePlacementController {
     this.getMesh = args.getMesh;
     this.getPlaneSize = args.getPlaneSize;
     this.onPlaneCreated = args.onPlaneCreated;
+    this.onPlaneChanged = args.onPlaneChanged;
     this.setStatus = args.setStatus;
 
     this.viewer.domElement.addEventListener("pointerdown", (event) =>
@@ -125,6 +128,7 @@ export class PlanePlacementController {
 
       this.activePlane = plane;
       this.onPlaneCreated(plane);
+      this.onPlaneChanged(plane);
 
       this.pendingOrigin = null;
       this.placementState = "idle";
@@ -218,6 +222,7 @@ export class PlanePlacementController {
           .addScaledVector(this.activeDrag.axisDirection, deltaT)
       );
 
+      this.onPlaneChanged(this.activePlane);
       return;
     }
 
@@ -239,6 +244,8 @@ export class PlanePlacementController {
     this.activePlane.group.quaternion
       .copy(this.activeDrag.startQuaternion)
       .multiply(delta);
+
+    this.onPlaneChanged(this.activePlane);
   }
 
   private onPointerUp(event: PointerEvent): void {

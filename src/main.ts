@@ -26,7 +26,7 @@ renderer.setPixelRatio(window.devicePixelRatio);
 app.appendChild(renderer.domElement);
 
 const controls = new OrbitControls(camera, renderer.domElement);
-controls.enableDamping = true;
+controls.enableDamping = false;
 
 const grid = new THREE.GridHelper(10, 10);
 scene.add(grid);
@@ -44,20 +44,12 @@ scene.add(dirLight);
 const loader = new STLLoader();
 
 let currentMesh: THREE.Mesh | null = null;
-let currentWireframe: THREE.Mesh | null = null;
 
 const meshMaterial = new THREE.MeshStandardMaterial({
   color: 0xdddddd,
   metalness: 0.1,
   roughness: 0.65,
   side: THREE.DoubleSide,
-});
-
-const wireMaterial = new THREE.MeshBasicMaterial({
-  color: 0x222222,
-  wireframe: true,
-  transparent: true,
-  opacity: 0.15,
 });
 
 const fileInput = document.createElement("input");
@@ -128,16 +120,8 @@ function displayGeometry(geometry: THREE.BufferGeometry) {
     currentMesh.geometry.dispose();
   }
 
-  if (currentWireframe) {
-    scene.remove(currentWireframe);
-    currentWireframe.geometry.dispose();
-  }
-
   currentMesh = new THREE.Mesh(geometry, meshMaterial);
   scene.add(currentMesh);
-
-  currentWireframe = new THREE.Mesh(geometry.clone(), wireMaterial);
-  scene.add(currentWireframe);
 }
 
 function frameObject(geometry: THREE.BufferGeometry) {

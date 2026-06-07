@@ -7,14 +7,15 @@ type PlacementState = "idle" | "pick-origin" | "pick-normal";
 type DragState =
   | {
       type: "translate-normal";
-      startY: number;
+      axisOrigin: THREE.Vector3;
+      axisDirection: THREE.Vector3;
+      initialAxisT: number;
       startPosition: THREE.Vector3;
-      startQuaternion: THREE.Quaternion;
-      scale: number;
     }
   | {
       type: "rotate";
       axis: THREE.Vector3;
+      tangentWorld: THREE.Vector3;
       startX: number;
       startY: number;
       startQuaternion: THREE.Quaternion;
@@ -127,7 +128,7 @@ export class PlanePlacementController {
 
       this.pendingOrigin = null;
       this.placementState = "idle";
-      this.setStatus("Plane created. Drag arrow to move; drag rings to rotate.");
+      this.setStatus("Plane created. Drag arrow to move; drag handles to rotate.");
     }
   }
 
@@ -155,22 +156,41 @@ export class PlanePlacementController {
     this.viewer.domElement.setPointerCapture(event.pointerId);
 
     if (hit.type === "translate-normal") {
+      const axisOrigin = this.activePlane.group.position.clone();
+      const axisDirection = this.activePlane.getNormalWorld();
+
+      const ray = this.viewer.getRayFromEvent(event);
+      const initialAxisT = closestParameterOnLineToRay(
+        axisOrigin,
+        axisDirection,
+        ray.origin,
+        ray.direction
+      );
+
       this.activeDrag = {
         type: "translate-normal",
-        startY: event.clientY,
+        axisOrigin,
+        axisDirection,
+        initialAxisT,
         startPosition: this.activePlane.group.position.clone(),
-        startQuaternion: this.activePlane.group.quaternion.clone(),
-        scale: this.getPlaneSize() / 300,
       };
-    } else {
-      this.activeDrag = {
-        type: "rotate",
-        axis: hit.axis,
-        startX: event.clientX,
-        startY: event.clientY,
-        startQuaternion: this.activePlane.group.quaternion.clone(),
-      };
+
+      return true;
     }
+
+    const tangentWorld = hit.tangent
+      .clone()
+      .applyQuaternion(this.activePlane.group.quaternion)
+      .normalize();
+
+    this.activeDrag = {
+      type: "rotate",
+      axis: hit.axis.clone().normalize(),
+      tangentWorld,
+      startX: event.clientX,
+      startY: event.clientY,
+      startQuaternion: this.activePlane.group.quaternion.clone(),
+    };
 
     return true;
   }
@@ -181,17 +201,21 @@ export class PlanePlacementController {
     }
 
     if (this.activeDrag.type === "translate-normal") {
-      const dy = event.clientY - this.activeDrag.startY;
-      const movement = -dy * this.activeDrag.scale;
+      const ray = this.viewer.getRayFromEvent(event);
 
-      const normalWorld = new THREE.Vector3(0, 0, 1)
-        .applyQuaternion(this.activeDrag.startQuaternion)
-        .normalize();
+      const axisT = closestParameterOnLineToRay(
+        this.activeDrag.axisOrigin,
+        this.activeDrag.axisDirection,
+        ray.origin,
+        ray.direction
+      );
+
+      const deltaT = axisT - this.activeDrag.initialAxisT;
 
       this.activePlane.group.position.copy(
         this.activeDrag.startPosition
           .clone()
-          .addScaledVector(normalWorld, movement)
+          .addScaledVector(this.activeDrag.axisDirection, deltaT)
       );
 
       return;
@@ -199,7 +223,13 @@ export class PlanePlacementController {
 
     const dx = event.clientX - this.activeDrag.startX;
     const dy = event.clientY - this.activeDrag.startY;
-    const angle = (dx + dy) * 0.01;
+
+    const screenTangent = this.getScreenSpaceDirection(
+      this.activeDrag.tangentWorld
+    );
+
+    const dragAlongTangent = dx * screenTangent.x + dy * screenTangent.y;
+    const angle = dragAlongTangent * 0.012;
 
     const delta = new THREE.Quaternion().setFromAxisAngle(
       this.activeDrag.axis,
@@ -220,4 +250,46 @@ export class PlanePlacementController {
     this.viewer.setControlsEnabled(true);
     this.viewer.domElement.releasePointerCapture(event.pointerId);
   }
+
+  private getScreenSpaceDirection(worldDirection: THREE.Vector3): THREE.Vector2 {
+    if (!this.activePlane) {
+      return new THREE.Vector2(1, 0);
+    }
+
+    const origin = this.activePlane.group.position.clone();
+
+    const p0 = origin.clone().project(this.viewer.camera);
+    const p1 = origin.clone().add(worldDirection).project(this.viewer.camera);
+
+    const direction = new THREE.Vector2(p1.x - p0.x, -(p1.y - p0.y));
+
+    if (direction.length() < 1e-6) {
+      return new THREE.Vector2(1, 0);
+    }
+
+    return direction.normalize();
+  }
+}
+
+function closestParameterOnLineToRay(
+  lineOrigin: THREE.Vector3,
+  lineDirection: THREE.Vector3,
+  rayOrigin: THREE.Vector3,
+  rayDirection: THREE.Vector3
+): number {
+  const p13 = lineOrigin.clone().sub(rayOrigin);
+
+  const d1343 = p13.dot(rayDirection);
+  const d4321 = rayDirection.dot(lineDirection);
+  const d1321 = p13.dot(lineDirection);
+  const d4343 = rayDirection.dot(rayDirection);
+  const d2121 = lineDirection.dot(lineDirection);
+
+  const denom = d2121 * d4343 - d4321 * d4321;
+
+  if (Math.abs(denom) < 1e-8) {
+    return 0;
+  }
+
+  return (d1343 * d4321 - d1321 * d4343) / denom;
 }

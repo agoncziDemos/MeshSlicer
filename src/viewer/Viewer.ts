@@ -78,6 +78,13 @@ export class Viewer {
     return this.raycaster.intersectObjects(objects, true);
   }
 
+  getRayFromEvent(event: PointerEvent): THREE.Ray {
+    this.setPointerFromEvent(event);
+    this.raycaster.setFromCamera(this.pointer, this.camera);
+
+    return this.raycaster.ray.clone();
+  }
+
   frameGeometry(geometry: THREE.BufferGeometry): void {
     geometry.computeBoundingSphere();
 

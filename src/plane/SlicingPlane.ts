@@ -4,6 +4,7 @@ import { PlaneGizmo } from "./PlaneGizmo.ts";
 export class SlicingPlane {
   readonly group: THREE.Group;
   readonly gizmo: PlaneGizmo;
+  readonly dragPickObjects: THREE.Object3D[];
 
   private readonly planeMesh: THREE.Mesh;
 
@@ -26,6 +27,7 @@ export class SlicingPlane {
     });
 
     this.planeMesh = new THREE.Mesh(planeGeometry, planeMaterial);
+    this.dragPickObjects = [this.planeMesh];
     this.group.add(this.planeMesh);
 
     this.gizmo = new PlaneGizmo(size);

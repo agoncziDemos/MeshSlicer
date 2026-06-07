@@ -141,62 +141,80 @@ export class PlanePlacementController {
       return false;
     }
 
-    const hits = this.viewer.pickObjects(
+    const gizmoHits = this.viewer.pickObjects(
       event,
       this.activePlane.gizmo.pickObjects
     );
 
-    if (hits.length === 0) {
-      return false;
+    if (gizmoHits.length > 0) {
+      const hit = this.activePlane.gizmo.getHitFromObject(gizmoHits[0].object);
+
+      if (hit) {
+        this.viewer.setControlsEnabled(false);
+        this.viewer.domElement.setPointerCapture(event.pointerId);
+
+        if (hit.type === "translate-normal") {
+          this.startTranslateNormalDrag(event);
+          return true;
+        }
+
+        const tangentWorld = hit.tangent
+          .clone()
+          .applyQuaternion(this.activePlane.group.quaternion)
+          .normalize();
+
+        this.activeDrag = {
+          type: "rotate",
+          axis: hit.axis.clone().normalize(),
+          tangentWorld,
+          startX: event.clientX,
+          startY: event.clientY,
+          startQuaternion: this.activePlane.group.quaternion.clone(),
+        };
+
+        return true;
+      }
     }
 
-    const hit = this.activePlane.gizmo.getHitFromObject(hits[0].object);
+    const planeHits = this.viewer.pickObjects(
+      event,
+      this.activePlane.dragPickObjects
+    );
 
-    if (!hit) {
+    if (planeHits.length === 0) {
       return false;
     }
 
     this.viewer.setControlsEnabled(false);
     this.viewer.domElement.setPointerCapture(event.pointerId);
-
-    if (hit.type === "translate-normal") {
-      const axisOrigin = this.activePlane.group.position.clone();
-      const axisDirection = this.activePlane.getNormalWorld();
-
-      const ray = this.viewer.getRayFromEvent(event);
-      const initialAxisT = closestParameterOnLineToRay(
-        axisOrigin,
-        axisDirection,
-        ray.origin,
-        ray.direction
-      );
-
-      this.activeDrag = {
-        type: "translate-normal",
-        axisOrigin,
-        axisDirection,
-        initialAxisT,
-        startPosition: this.activePlane.group.position.clone(),
-      };
-
-      return true;
-    }
-
-    const tangentWorld = hit.tangent
-      .clone()
-      .applyQuaternion(this.activePlane.group.quaternion)
-      .normalize();
-
-    this.activeDrag = {
-      type: "rotate",
-      axis: hit.axis.clone().normalize(),
-      tangentWorld,
-      startX: event.clientX,
-      startY: event.clientY,
-      startQuaternion: this.activePlane.group.quaternion.clone(),
-    };
+    this.startTranslateNormalDrag(event);
 
     return true;
+  }
+
+  private startTranslateNormalDrag(event: PointerEvent): void {
+    if (!this.activePlane) {
+      return;
+    }
+
+    const axisOrigin = this.activePlane.group.position.clone();
+    const axisDirection = this.activePlane.getNormalWorld();
+
+    const ray = this.viewer.getRayFromEvent(event);
+    const initialAxisT = closestParameterOnLineToRay(
+      axisOrigin,
+      axisDirection,
+      ray.origin,
+      ray.direction
+    );
+
+    this.activeDrag = {
+      type: "translate-normal",
+      axisOrigin,
+      axisDirection,
+      initialAxisT,
+      startPosition: this.activePlane.group.position.clone(),
+    };
   }
 
   private onPointerMove(event: PointerEvent): void {

@@ -30,7 +30,7 @@ if(EMSCRIPTEN)
 
   target_link_options(slicer PRIVATE
     "SHELL:-O3"
-    "SHELL:-pthread"
+    # "SHELL:-pthread"
     "SHELL:--bind"
     "SHELL:-s USE_PTHREADS=0"
     # "SHELL:-s PTHREAD_POOL_SIZE=8"

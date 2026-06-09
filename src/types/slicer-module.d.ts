@@ -1,9 +1,9 @@
-declare module "../wasm/dist/slicer.js" {
-  type WasmSaveMeshResult = {
+declare module "*/wasm/dist/slicer.js" {
+  export type WasmSaveMeshResult = {
     faceCount: number;
   };
 
-  type WasmSliceStackResult = {
+  export type WasmSliceStackResult = {
     faceCount: number;
     nativeComputeTimeMs: number;
     candidateBuildTimeMs: number;
@@ -13,7 +13,7 @@ declare module "../wasm/dist/slicer.js" {
     layerSegmentOffsets: Int32Array;
   };
 
-  type SlicerModule = {
+  export type SlicerModule = {
     saveMesh(vertices: number[] | Float32Array): WasmSaveMeshResult;
 
     computeSavedSliceStack(
@@ -30,7 +30,7 @@ declare module "../wasm/dist/slicer.js" {
     ): WasmSliceStackResult;
   };
 
-  type SlicerModuleOptions = {
+  export type SlicerModuleOptions = {
     locateFile?: (path: string, prefix: string) => string;
   };
 

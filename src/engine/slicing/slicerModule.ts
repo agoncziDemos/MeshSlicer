@@ -50,7 +50,7 @@ let slicerModulePromise: ReturnType<typeof createSlicerModule> | null = null;
 
 function getSlicerModule(): ReturnType<typeof createSlicerModule> {
   slicerModulePromise ??= createSlicerModule({
-    locateFile: (path) => {
+    locateFile: (path: string, _prefix: string): string => {
       return new URL(`../../wasm/dist/${path}`, import.meta.url).href;
     },
   });

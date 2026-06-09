@@ -174,10 +174,11 @@ function createHelpTooltip(): HTMLDivElement {
   tooltip.innerHTML = [
     "<strong>How to use MeshSlicer</strong>",
     "1. Load an STL file.",
-    "2. Click Create Plane, then click the mesh to place it.",
-    "3. Drag or rotate the plane to adjust the slice direction.",
-    "4. Choose TS or WASM, adjust the slice step, then click Slice.",
-    "5. Download the generated PNG slice stack.",
+    "2. Click Create Plane.",
+    "3. Click two points on the mesh to create the slicing plane.",
+    "4. Move or rotate the plane to update the cross-section preview.",
+    "5. Choose TS or WASM, adjust the slice step, then click Slice.",
+    "6. Download the generated PNG slice stack.",
   ].join("<br />");
 
   container.appendChild(button);
@@ -220,7 +221,7 @@ function applyHelpTooltipStyles(
   tooltip.style.position = "absolute";
   tooltip.style.left = "0";
   tooltip.style.top = "34px";
-  tooltip.style.width = "280px";
+  tooltip.style.width = "300px";
   tooltip.style.padding = "10px 12px";
   tooltip.style.borderRadius = "8px";
   tooltip.style.background = "rgba(255, 255, 255, 0.96)";

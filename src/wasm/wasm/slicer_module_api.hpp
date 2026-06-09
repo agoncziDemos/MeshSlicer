@@ -1,5 +1,6 @@
 #pragma once
 
+#include <emscripten/emscripten.h>
 #include <emscripten/val.h>
 
 #include <vector>
@@ -60,7 +61,7 @@ inline emscripten::val toJavaScriptArray(const std::vector<int>& values) {
  * @param planeFrame JavaScript array or typed array arranged as origin, axisX, axisY, normal.
  * @param sliceCount Number of slices to compute.
  * @param sliceSpacing Distance between adjacent slices.
- * @return JavaScript object containing face count, flat segments, and layer segment offsets.
+ * @return JavaScript object containing face count, native compute time, flat segments, and layer segment offsets.
  */
 inline emscripten::val computeSliceStackFromJavaScript(
     const emscripten::val& vertices,
@@ -68,17 +69,24 @@ inline emscripten::val computeSliceStackFromJavaScript(
     int sliceCount,
     float sliceSpacing
 ) {
+    const std::vector<float> nativeVertices = toFloatVector(vertices);
+
     const SliceStackRequest request = {
         toFloatVector(planeFrame),
         sliceCount,
         sliceSpacing,
     };
 
+    const double computeStartMs = emscripten_get_now();
+
     const SliceStackResult result =
-        computeSliceStack(toFloatVector(vertices), request);
+        computeSliceStack(nativeVertices, request);
+
+    const double nativeComputeTimeMs = emscripten_get_now() - computeStartMs;
 
     emscripten::val output = emscripten::val::object();
     output.set("faceCount", result.faceCount);
+    output.set("nativeComputeTimeMs", nativeComputeTimeMs);
     output.set("segments", toJavaScriptArray(result.segments));
     output.set("layerSegmentOffsets", toJavaScriptArray(result.layerSegmentOffsets));
 

@@ -3,7 +3,7 @@
 #include <vector>
 
 /*
- * @brief Request data for computing a stack of parallel mesh slices.
+ * @brief Request data for cutting a triangle mesh into parallel cross-section layers.
  */
 struct SliceStackRequest {
     /*
@@ -12,12 +12,12 @@ struct SliceStackRequest {
     std::vector<float> planeFrame;
 
     /*
-     * @brief Number of slices to compute.
+     * @brief Number of cross-section layers to compute.
      */
     int sliceCount;
 
     /*
-     * @brief Distance between adjacent slices.
+     * @brief Distance between adjacent layers along the slicing normal.
      */
     float sliceSpacing;
 };
@@ -32,7 +32,7 @@ struct SliceStackResult {
     int faceCount = 0;
 
     /*
-     * @brief Total native C++ compute time in milliseconds, excluding JS/C++ conversion.
+     * @brief Total native C++ slicing time in milliseconds.
      */
     double nativeComputeTimeMs = 0.0;
 
@@ -42,13 +42,17 @@ struct SliceStackResult {
     double candidateBuildTimeMs = 0.0;
 
     /*
-     * @brief Time spent computing slice intersections in milliseconds.
+     * @brief Time spent computing raw slice line segments in milliseconds.
      */
     double sliceIntersectionTimeMs = 0.0;
 
     /*
+     * @brief Time spent merging per-slice worker outputs into the final flat segment buffer.
+     */
+    double segmentMergeTimeMs = 0.0;
+
+    /*
      * @brief Flat 2D segment buffer arranged as ax, ay, bx, by per segment.
-     * Used to create PNG's on the front-end.
      */
     std::vector<float> segments;
 
@@ -59,11 +63,11 @@ struct SliceStackResult {
 };
 
 /*
- * @brief Computes slice data for a mesh using the requested slicing plane stack.
+ * @brief Cuts a triangle mesh into parallel cross-section layers.
  *
  * @param vertices Flat triangle vertex buffer arranged as x, y, z values. Every 9 floats represent one triangle.
  * @param request Slice stack settings, including the plane frame, slice count, and slice spacing.
- * @return Slice stack result data. Used to create PNG's on the front-end.
+ * @return Slice stack result data used by the frontend to export the generated layers.
  */
 SliceStackResult computeSliceStack(
     const std::vector<float>& vertices,

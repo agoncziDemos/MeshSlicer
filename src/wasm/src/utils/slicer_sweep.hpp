@@ -6,6 +6,7 @@
 
 /*
  * @brief Appends a full stack of slice segments using an active-triangle sweep.
+ *
  * @param vertices Flat triangle vertex buffer arranged as x, y, z values.
  * @param centerPlaneFrame Plane frame at the center of the slice stack.
  * @param sliceCount Number of slices to compute.

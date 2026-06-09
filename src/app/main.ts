@@ -13,7 +13,10 @@ import {
   type SliceStackLayer,
   type SliceStackResult,
 } from "../engine/slicing/computeSlice.ts";
-import { computeWasmSliceStack } from "../engine/slicing/slicerModule.ts";
+import {
+  computeWasmSliceStack,
+  type WasmComputedSliceStack,
+} from "../engine/slicing/slicerModule.ts";
 import { CrossSectionView } from "../ui/CrossSectionView.ts";
 import { Toolbar, type SliceEngine } from "../ui/Toolbar.ts";
 import { Viewer } from "../engine/viewer/Viewer.ts";
@@ -147,7 +150,7 @@ toolbar.onSlice(async (sliceStep, sliceEngine) => {
 
   toolbar.setStatus(`Computing ${getSliceEngineLabel(sliceEngine)} slice stack...`);
 
-  const computeStartMs = performance.now();
+  const frontendCallStartMs = performance.now();
 
   const stack = await computeSelectedSliceStack(
     currentMesh,
@@ -156,14 +159,9 @@ toolbar.onSlice(async (sliceStep, sliceEngine) => {
     sliceEngine
   );
 
-  const computeTimeMs = performance.now() - computeStartMs;
+  const frontendCallTimeMs = performance.now() - frontendCallStartMs;
 
-  console.log(
-    `${getSliceEngineLabel(sliceEngine)} slice computation took ${computeTimeMs.toFixed(
-      2
-    )} ms`,
-    stack
-  );
+  logSliceComputationTiming(sliceEngine, frontendCallTimeMs, stack);
 
   const segmentCount = stack.layers.reduce(
     (total, layer) => total + layer.result.segments.length,
@@ -183,7 +181,7 @@ toolbar.onSlice(async (sliceStep, sliceEngine) => {
 
   toolbar.setStatus(
     `Exported ${stack.layers.length} PNG files, ${segmentCount} segments. ` +
-      `${getSliceEngineLabel(sliceEngine)} compute: ${computeTimeMs.toFixed(2)} ms`
+      getComputeStatusText(sliceEngine, frontendCallTimeMs, stack)
   );
 });
 
@@ -206,6 +204,82 @@ function getSliceEngineLabel(sliceEngine: SliceEngine): string {
   }
 
   return "WASM";
+}
+
+function isWasmComputedSliceStack(
+  stack: SliceStackResult
+): stack is WasmComputedSliceStack {
+  return (
+    hasFiniteNumberProperty(stack, "nativeComputeTimeMs") &&
+    hasFiniteNumberProperty(stack, "candidateBuildTimeMs") &&
+    hasFiniteNumberProperty(stack, "sliceIntersectionTimeMs") &&
+    hasFiniteNumberProperty(stack, "segmentMergeTimeMs")
+  );
+}
+
+function hasFiniteNumberProperty(
+  value: object,
+  propertyName: string
+): boolean {
+  const record = value as Record<string, unknown>;
+
+  return (
+    typeof record[propertyName] === "number" &&
+    Number.isFinite(record[propertyName])
+  );
+}
+
+function logSliceComputationTiming(
+  sliceEngine: SliceEngine,
+  frontendCallTimeMs: number,
+  stack: SliceStackResult
+): void {
+  if (sliceEngine !== "wasm" || !isWasmComputedSliceStack(stack)) {
+    console.log(
+      `${getSliceEngineLabel(sliceEngine)} frontend computation took ` +
+        `${frontendCallTimeMs.toFixed(2)} ms`,
+      stack
+    );
+    return;
+  }
+
+  const measuredNativeStageTimeMs =
+    stack.candidateBuildTimeMs +
+    stack.sliceIntersectionTimeMs +
+    stack.segmentMergeTimeMs;
+
+  const nativeOtherTimeMs = Math.max(
+    0,
+    stack.nativeComputeTimeMs - measuredNativeStageTimeMs
+  );
+
+  console.log(
+    [
+      "WASM slicer timing",
+      `frontend call: ${frontendCallTimeMs.toFixed(2)} ms`,
+      `native C++ total: ${stack.nativeComputeTimeMs.toFixed(2)} ms`,
+      `candidate build: ${stack.candidateBuildTimeMs.toFixed(2)} ms`,
+      `slice segment generation: ${stack.sliceIntersectionTimeMs.toFixed(2)} ms`,
+      `segment merge: ${stack.segmentMergeTimeMs.toFixed(2)} ms`,
+      `native overhead: ${nativeOtherTimeMs.toFixed(2)} ms`,
+      "",
+      "slice segment generation is the raw C++ step that intersects candidate triangles with the slice planes and writes 2D line segments.",
+      "frontend call includes mesh extraction, JS-to-WASM input conversion, WASM-to-JS output conversion, and TypeScript layer reconstruction.",
+    ].join("\n"),
+    stack
+  );
+}
+
+function getComputeStatusText(
+  sliceEngine: SliceEngine,
+  frontendCallTimeMs: number,
+  stack: SliceStackResult
+): string {
+  if (sliceEngine === "wasm" && isWasmComputedSliceStack(stack)) {
+    return `C++ segment generation: ${stack.sliceIntersectionTimeMs.toFixed(2)} ms`;
+  }
+
+  return `${getSliceEngineLabel(sliceEngine)} frontend compute: ${frontendCallTimeMs.toFixed(2)} ms`;
 }
 
 async function downloadSliceLayersAsPngZip(

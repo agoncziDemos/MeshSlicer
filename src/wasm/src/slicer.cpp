@@ -1,30 +1,25 @@
 #include "slicer.hpp"
 
+#include <chrono>
 #include <vector>
 
 #include "utils/slicer_candidates.hpp"
 #include "utils/slicer_geometry.hpp"
+#include "utils/triangle_buffer.hpp"
 
 namespace {
 
-constexpr int kFloatsPerTriangle = 9;
-
-std::vector<float> savedVertices;
+using Clock = std::chrono::steady_clock;
 
 /*
- * @brief Stores the mesh triangle buffer for later native slicing operations.
- * @param vertices Flat triangle vertex buffer arranged as x, y, z values.
+ * @brief Computes elapsed time between two time points in milliseconds.
+ *
+ * @param start Start time.
+ * @param end End time.
+ * @return Elapsed time in milliseconds.
  */
-void saveMesh(const std::vector<float>& vertices) {
-    savedVertices = vertices;
-}
-
-/*
- * @brief Gets the number of saved triangle faces.
- * @return Number of complete triangles in the saved vertex buffer.
- */
-int getSavedFaceCount() {
-    return static_cast<int>(savedVertices.size() / kFloatsPerTriangle);
+double elapsedMilliseconds(Clock::time_point start, Clock::time_point end) {
+    return std::chrono::duration<double, std::milli>(end - start).count();
 }
 
 } // namespace
@@ -33,10 +28,8 @@ SliceStackResult computeSliceStack(
     const std::vector<float>& vertices,
     const SliceStackRequest& request
 ) {
-    saveMesh(vertices);
-
     SliceStackResult result;
-    result.faceCount = getSavedFaceCount();
+    result.faceCount = static_cast<int>(getTriangleCount(vertices));
 
     PlaneFrame centerPlaneFrame;
 
@@ -47,13 +40,28 @@ SliceStackResult computeSliceStack(
 
     const int sliceCount = request.sliceCount > 0 ? request.sliceCount : 1;
 
+    SliceCandidateTiming timing;
+
+    const auto nativeComputeStart = Clock::now();
+
     appendSliceStackSegmentsFromCandidates(
-        savedVertices,
+        vertices,
         centerPlaneFrame,
         sliceCount,
         request.sliceSpacing,
         result.segments,
-        result.layerSegmentOffsets
+        result.layerSegmentOffsets,
+        &timing
+    );
+
+    const auto nativeComputeEnd = Clock::now();
+
+    result.candidateBuildTimeMs = timing.candidateBuildTimeMs;
+    result.sliceIntersectionTimeMs = timing.sliceIntersectionTimeMs;
+    result.segmentMergeTimeMs = timing.segmentMergeTimeMs;
+    result.nativeComputeTimeMs = elapsedMilliseconds(
+        nativeComputeStart,
+        nativeComputeEnd
     );
 
     return result;

@@ -9,7 +9,10 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 add_executable(slicer
   src/slicer.cpp
   src/utils/vec3.cpp
+  src/utils/triangle_buffer.cpp
   src/utils/slicer_geometry.cpp
+  src/utils/slicer_stack.cpp
+  src/utils/slicer_sweep.cpp
   src/utils/slicer_candidates.cpp
   wasm/slicer_module.cpp
 )

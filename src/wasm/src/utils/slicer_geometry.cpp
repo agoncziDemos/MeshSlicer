@@ -4,6 +4,8 @@
 #include <cstddef>
 #include <vector>
 
+#include "triangle_buffer.hpp"
+
 namespace {
 
 constexpr float kIntersectionEpsilon = 1.0e-5f;
@@ -11,21 +13,8 @@ constexpr float kIntersectionEpsilonSquared =
     kIntersectionEpsilon * kIntersectionEpsilon;
 
 /*
- * @brief Reads a 3D vector from a flat float vector.
- * @param values Source float vector.
- * @param offset Index of the first x, y, z value.
- * @return 3D vector read from the source values.
- */
-Vec3 readVec3(const std::vector<float>& values, std::size_t offset) {
-    return {
-        values[offset],
-        values[offset + 1],
-        values[offset + 2],
-    };
-}
-
-/*
  * @brief Adds a point to a list when an equivalent point is not already present.
+ *
  * @param points Point list to update.
  * @param point Point to add.
  */
@@ -41,6 +30,7 @@ void addUniquePoint(std::vector<Vec3>& points, Vec3 point) {
 
 /*
  * @brief Adds an edge-plane intersection point when the edge crosses the plane.
+ *
  * @param intersections Intersection point list to update.
  * @param a First edge endpoint.
  * @param b Second edge endpoint.
@@ -87,6 +77,7 @@ void addEdgePlaneIntersection(
 
 /*
  * @brief Appends one projected 2D segment to the output buffer.
+ *
  * @param segments Flat output buffer arranged as ax, ay, bx, by per segment.
  * @param a First 3D endpoint.
  * @param b Second 3D endpoint.
@@ -114,10 +105,10 @@ bool readPlaneFrame(const std::vector<float>& values, PlaneFrame& output) {
         return false;
     }
 
-    output.origin = readVec3(values, 0);
-    output.axisX = normalize(readVec3(values, 3));
-    output.axisY = normalize(readVec3(values, 6));
-    output.normal = normalize(readVec3(values, 9));
+    output.origin = readTrianglePoint(values, 0);
+    output.axisX = normalize(readTrianglePoint(values, 3));
+    output.axisY = normalize(readTrianglePoint(values, 6));
+    output.normal = normalize(readTrianglePoint(values, 9));
 
     return true;
 }
@@ -139,9 +130,9 @@ void appendTriangleSliceSegment(
     const PlaneFrame& planeFrame,
     std::vector<float>& segments
 ) {
-    const Vec3 a = readVec3(vertices, triangleOffset);
-    const Vec3 b = readVec3(vertices, triangleOffset + 3);
-    const Vec3 c = readVec3(vertices, triangleOffset + 6);
+    const Vec3 a = readTrianglePoint(vertices, triangleOffset);
+    const Vec3 b = readTrianglePoint(vertices, triangleOffset + 3);
+    const Vec3 c = readTrianglePoint(vertices, triangleOffset + 6);
 
     const float distanceA = dot(subtract(a, planeFrame.origin), planeFrame.normal);
     const float distanceB = dot(subtract(b, planeFrame.origin), planeFrame.normal);

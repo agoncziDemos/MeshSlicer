@@ -10,10 +10,18 @@ import type {
 
 export type WasmComputedSliceStack = SliceStackResult & {
   faceCount: number;
+  nativeComputeTimeMs: number;
+  candidateBuildTimeMs: number;
+  sliceIntersectionTimeMs: number;
+  segmentMergeTimeMs: number;
 };
 
 type WasmSliceStackResult = {
   faceCount: number;
+  nativeComputeTimeMs: number;
+  candidateBuildTimeMs: number;
+  sliceIntersectionTimeMs: number;
+  segmentMergeTimeMs: number;
   segments: number[];
   layerSegmentOffsets: number[];
 };
@@ -56,6 +64,10 @@ export async function computeWasmSliceStack(
   if (!request) {
     return {
       faceCount: 0,
+      nativeComputeTimeMs: 0,
+      candidateBuildTimeMs: 0,
+      sliceIntersectionTimeMs: 0,
+      segmentMergeTimeMs: 0,
       layers: [],
       minOffset: 0,
       maxOffset: 0,
@@ -73,6 +85,10 @@ export async function computeWasmSliceStack(
 
   return {
     faceCount: result.faceCount,
+    nativeComputeTimeMs: result.nativeComputeTimeMs,
+    candidateBuildTimeMs: result.candidateBuildTimeMs,
+    sliceIntersectionTimeMs: result.sliceIntersectionTimeMs,
+    segmentMergeTimeMs: result.segmentMergeTimeMs,
     layers: convertWasmSliceStackResult(result, request),
     minOffset: request.firstOffset,
     maxOffset: request.lastOffset,

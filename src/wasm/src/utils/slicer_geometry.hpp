@@ -32,6 +32,7 @@ struct PlaneFrame {
 
 /*
  * @brief Reads a plane frame from a flat float buffer.
+ *
  * @param values Flat buffer arranged as origin, axisX, axisY, normal.
  * @param output Plane frame populated from the buffer.
  * @return True when the buffer contains enough values.
@@ -40,6 +41,7 @@ bool readPlaneFrame(const std::vector<float>& values, PlaneFrame& output);
 
 /*
  * @brief Returns a copy of a plane frame shifted along its normal.
+ *
  * @param planeFrame Base plane frame.
  * @param offset Signed offset along the plane normal.
  * @return Shifted plane frame.
@@ -48,6 +50,7 @@ PlaneFrame getShiftedPlaneFrame(const PlaneFrame& planeFrame, float offset);
 
 /*
  * @brief Appends the segment produced by intersecting one triangle with one slicing plane.
+ *
  * @param vertices Flat triangle vertex buffer arranged as x, y, z values.
  * @param triangleOffset Offset of the triangle's first float in the vertex buffer.
  * @param planeFrame Plane frame used for intersection and projection.

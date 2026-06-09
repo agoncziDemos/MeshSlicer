@@ -1,6 +1,10 @@
 declare module "../wasm/dist/slicer.js" {
   type WasmSliceStackResult = {
     faceCount: number;
+    nativeComputeTimeMs: number;
+    candidateBuildTimeMs: number;
+    sliceIntersectionTimeMs: number;
+    segmentMergeTimeMs: number;
     segments: number[];
     layerSegmentOffsets: number[];
   };

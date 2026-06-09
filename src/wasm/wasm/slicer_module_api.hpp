@@ -1,6 +1,5 @@
 #pragma once
 
-#include <emscripten/emscripten.h>
 #include <emscripten/val.h>
 
 #include <vector>
@@ -59,13 +58,13 @@ inline emscripten::val toJavaScriptArray(const std::vector<int>& values) {
 }
 
 /*
- * @brief Cuts a triangle mesh into a sequence of cross-section layers and returns the resulting 2D line segments.
+ * @brief Cuts a triangle mesh into cross-section layers and returns raw 2D line segments.
  *
  * @param vertices Flat triangle vertex buffer arranged as x, y, z values. Every 9 floats represent one triangle.
  * @param planeFrame Flat plane frame arranged as origin, axisX, axisY, normal.
  * @param sliceCount Number of cross-section layers to compute.
  * @param sliceSpacing Distance between adjacent layers along the slicing normal.
- * @return Slice data used by the frontend to draw and export the PNG layers.
+ * @return Slice data and native timing measurements used by the frontend.
  */
 inline emscripten::val computeSliceStackFromJavaScript(
     const emscripten::val& vertices,
@@ -73,24 +72,23 @@ inline emscripten::val computeSliceStackFromJavaScript(
     int sliceCount,
     float sliceSpacing
 ) {
-    const std::vector<float> nativeVertices = toFloatVector(vertices);
-
     const SliceStackRequest request = {
         toFloatVector(planeFrame),
         sliceCount,
         sliceSpacing,
     };
 
-    const double computeStartMs = emscripten_get_now();
-
-    const SliceStackResult result =
-        computeSliceStack(nativeVertices, request);
-
-    const double nativeComputeTimeMs = emscripten_get_now() - computeStartMs;
+    const SliceStackResult result = computeSliceStack(
+        toFloatVector(vertices),
+        request
+    );
 
     emscripten::val output = emscripten::val::object();
     output.set("faceCount", result.faceCount);
-    output.set("nativeComputeTimeMs", nativeComputeTimeMs);
+    output.set("nativeComputeTimeMs", result.nativeComputeTimeMs);
+    output.set("candidateBuildTimeMs", result.candidateBuildTimeMs);
+    output.set("sliceIntersectionTimeMs", result.sliceIntersectionTimeMs);
+    output.set("segmentMergeTimeMs", result.segmentMergeTimeMs);
     output.set("segments", toJavaScriptArray(result.segments));
     output.set("layerSegmentOffsets", toJavaScriptArray(result.layerSegmentOffsets));
 

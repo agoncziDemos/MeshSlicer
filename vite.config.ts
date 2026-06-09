@@ -6,9 +6,12 @@ const crossOriginIsolationHeaders = {
 };
 
 export default defineConfig({
+  base: "/MeshSlicer/",
+
   server: {
     headers: crossOriginIsolationHeaders,
   },
+
   preview: {
     headers: crossOriginIsolationHeaders,
   },

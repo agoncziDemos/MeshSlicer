@@ -76,6 +76,7 @@ export class Toolbar {
     toolbar.appendChild(this.fileInput);
 
     app.appendChild(toolbar);
+    app.appendChild(createHelpTooltip());
 
     loadButton.addEventListener("click", () => {
       this.fileInput.click();
@@ -156,4 +157,85 @@ export class Toolbar {
 
     this.sliceEngineToggle.textContent = "TS | WASM ●";
   }
+}
+
+function createHelpTooltip(): HTMLDivElement {
+  const container = document.createElement("div");
+  container.id = "help-tooltip";
+
+  const button = document.createElement("button");
+  button.id = "help-tooltip-button";
+  button.type = "button";
+  button.textContent = "i";
+  button.setAttribute("aria-label", "Show MeshSlicer instructions");
+
+  const tooltip = document.createElement("div");
+  tooltip.id = "help-tooltip-panel";
+  tooltip.innerHTML = [
+    "<strong>How to use MeshSlicer</strong>",
+    "1. Load an STL file.",
+    "2. Click Create Plane, then click the mesh to place it.",
+    "3. Drag or rotate the plane to adjust the slice direction.",
+    "4. Choose TS or WASM, adjust the slice step, then click Slice.",
+    "5. Download the generated PNG slice stack.",
+  ].join("<br />");
+
+  container.appendChild(button);
+  container.appendChild(tooltip);
+
+  applyHelpTooltipStyles(container, button, tooltip);
+
+  return container;
+}
+
+function applyHelpTooltipStyles(
+  container: HTMLDivElement,
+  button: HTMLButtonElement,
+  tooltip: HTMLDivElement
+): void {
+  container.style.position = "fixed";
+  container.style.left = "18px";
+  container.style.top = "64px";
+  container.style.zIndex = "20";
+
+  button.style.width = "26px";
+  button.style.height = "26px";
+  button.style.padding = "0";
+  button.style.display = "flex";
+  button.style.alignItems = "center";
+  button.style.justifyContent = "center";
+  button.style.borderRadius = "50%";
+  button.style.border = "1px solid #aaaaaa";
+  button.style.background = "rgba(255, 255, 255, 0.92)";
+  button.style.color = "#333333";
+  button.style.fontFamily = "Georgia, serif";
+  button.style.fontSize = "16px";
+  button.style.fontStyle = "italic";
+  button.style.fontWeight = "700";
+  button.style.lineHeight = "1";
+  button.style.cursor = "help";
+  button.style.boxShadow = "0 2px 8px rgba(0, 0, 0, 0.15)";
+
+  tooltip.style.display = "none";
+  tooltip.style.position = "absolute";
+  tooltip.style.left = "0";
+  tooltip.style.top = "34px";
+  tooltip.style.width = "280px";
+  tooltip.style.padding = "10px 12px";
+  tooltip.style.borderRadius = "8px";
+  tooltip.style.background = "rgba(255, 255, 255, 0.96)";
+  tooltip.style.border = "1px solid #cccccc";
+  tooltip.style.boxShadow = "0 4px 16px rgba(0, 0, 0, 0.22)";
+  tooltip.style.color = "#222222";
+  tooltip.style.font = "13px system-ui, sans-serif";
+  tooltip.style.lineHeight = "1.45";
+  tooltip.style.pointerEvents = "none";
+
+  container.addEventListener("mouseenter", () => {
+    tooltip.style.display = "block";
+  });
+
+  container.addEventListener("mouseleave", () => {
+    tooltip.style.display = "none";
+  });
 }

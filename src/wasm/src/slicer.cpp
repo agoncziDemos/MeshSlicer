@@ -11,6 +11,8 @@ namespace {
 
 using Clock = std::chrono::steady_clock;
 
+std::vector<float> savedVertices;
+
 /*
  * @brief Computes elapsed time between two time points in milliseconds.
  *
@@ -22,14 +24,34 @@ double elapsedMilliseconds(Clock::time_point start, Clock::time_point end) {
     return std::chrono::duration<double, std::milli>(end - start).count();
 }
 
+/*
+ * @brief Gets the number of complete triangle faces stored in native memory.
+ *
+ * @return Number of saved triangle faces.
+ */
+int getSavedFaceCount() {
+    return static_cast<int>(getTriangleCount(savedVertices));
+}
+
 } // namespace
 
-SliceStackResult computeSliceStack(
-    const std::vector<float>& vertices,
-    const SliceStackRequest& request
-) {
+SaveMeshResult saveMesh(const std::vector<float>& vertices) {
+    savedVertices = vertices;
+
+    SaveMeshResult result;
+    result.faceCount = getSavedFaceCount();
+
+    return result;
+}
+
+SliceStackResult computeSavedSliceStack(const SliceStackRequest& request) {
     SliceStackResult result;
-    result.faceCount = static_cast<int>(getTriangleCount(vertices));
+    result.faceCount = getSavedFaceCount();
+
+    if (savedVertices.empty()) {
+        result.layerSegmentOffsets.push_back(0);
+        return result;
+    }
 
     PlaneFrame centerPlaneFrame;
 
@@ -45,7 +67,7 @@ SliceStackResult computeSliceStack(
     const auto nativeComputeStart = Clock::now();
 
     appendSliceStackSegmentsFromCandidates(
-        vertices,
+        savedVertices,
         centerPlaneFrame,
         sliceCount,
         request.sliceSpacing,
@@ -65,4 +87,13 @@ SliceStackResult computeSliceStack(
     );
 
     return result;
+}
+
+SliceStackResult computeSliceStack(
+    const std::vector<float>& vertices,
+    const SliceStackRequest& request
+) {
+    saveMesh(vertices);
+
+    return computeSavedSliceStack(request);
 }

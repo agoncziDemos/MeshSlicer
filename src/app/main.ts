@@ -15,6 +15,7 @@ import {
 } from "../engine/slicing/computeSlice.ts";
 import {
   computeWasmSliceStack,
+  saveWasmMesh,
   type WasmComputedSliceStack,
 } from "../engine/slicing/slicerModule.ts";
 import { CrossSectionView } from "../ui/CrossSectionView.ts";
@@ -35,13 +36,14 @@ const toolbar = new Toolbar(app);
 
 const crossSectionView = new CrossSectionView(app, {
   id: "cross-section-view",
-  label: "TypeScript Cross Section",
+  label: "Cross Section",
   verticalPosition: "top",
 });
 
 let currentMesh: THREE.Mesh | null = null;
 let currentPlane: SlicingPlane | null = null;
 let currentFileName = "slices";
+let savedWasmFaceCount = 0;
 
 const meshMaterial = new THREE.MeshStandardMaterial({
   color: 0xdddddd,
@@ -88,6 +90,8 @@ const planeController = new PlanePlacementController({
 
 toolbar.onLoadStl(async (file) => {
   toolbar.setFileLabel(`Loading ${file.name}...`);
+  toolbar.setStatus("Loading STL...");
+
   currentFileName = file.name.replace(/\.[^.]+$/, "") || "slices";
 
   const geometry = await loadStlFile(file);
@@ -110,8 +114,13 @@ toolbar.onLoadStl(async (file) => {
 
   crossSectionView.clear();
 
+  toolbar.setStatus("Saving mesh to WASM...");
+
+  const savedMesh = await saveWasmMesh(currentMesh);
+  savedWasmFaceCount = savedMesh.faceCount;
+
   toolbar.setFileLabel(file.name);
-  toolbar.setStatus("");
+  toolbar.setStatus(`Loaded ${file.name}. Saved ${savedWasmFaceCount} faces to WASM.`);
 });
 
 toolbar.onCreatePlane(() => {
@@ -145,6 +154,11 @@ toolbar.onSlice(async (sliceStep, sliceEngine) => {
 
   if (!currentPlane) {
     toolbar.setStatus("Create a plane first");
+    return;
+  }
+
+  if (sliceEngine === "wasm" && savedWasmFaceCount === 0) {
+    toolbar.setStatus("Mesh has not been saved to WASM yet");
     return;
   }
 
@@ -264,7 +278,8 @@ function logSliceComputationTiming(
       `native overhead: ${nativeOtherTimeMs.toFixed(2)} ms`,
       "",
       "slice segment generation is the raw C++ step that intersects candidate triangles with the slice planes and writes 2D line segments.",
-      "frontend call includes mesh extraction, JS-to-WASM input conversion, WASM-to-JS output conversion, and TypeScript layer reconstruction.",
+      "frontend call includes slice range setup, plane-frame extraction, the WASM call, memory-view reading, and TypeScript layer reconstruction.",
+      "The mesh triangle buffer is saved to WASM during STL load and is not rebuilt during this slice call.",
     ].join("\n"),
     stack
   );

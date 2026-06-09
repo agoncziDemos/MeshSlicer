@@ -8,6 +8,10 @@ import type {
   SliceStackResult,
 } from "./computeSlice.ts";
 
+export type WasmSavedMesh = {
+  faceCount: number;
+};
+
 export type WasmComputedSliceStack = SliceStackResult & {
   faceCount: number;
   nativeComputeTimeMs: number;
@@ -22,8 +26,8 @@ type WasmSliceStackResult = {
   candidateBuildTimeMs: number;
   sliceIntersectionTimeMs: number;
   segmentMergeTimeMs: number;
-  segments: number[];
-  layerSegmentOffsets: number[];
+  segments: Float32Array;
+  layerSegmentOffsets: Int32Array;
 };
 
 type ProjectionRange = {
@@ -54,6 +58,15 @@ function getSlicerModule(): ReturnType<typeof createSlicerModule> {
   return slicerModulePromise;
 }
 
+export async function saveWasmMesh(mesh: THREE.Mesh): Promise<WasmSavedMesh> {
+  const module = await getSlicerModule();
+  const result = module.saveMesh(extractMeshTriangles(mesh));
+
+  return {
+    faceCount: result.faceCount,
+  };
+}
+
 export async function computeWasmSliceStack(
   mesh: THREE.Mesh,
   plane: SlicingPlane,
@@ -76,8 +89,7 @@ export async function computeWasmSliceStack(
 
   const module = await getSlicerModule();
 
-  const result = module.computeSliceStack(
-    extractMeshTriangles(mesh),
+  const result = module.computeSavedSliceStack(
     extractPlaneFrame(request),
     request.sliceCount,
     request.sliceSpacing
@@ -194,7 +206,7 @@ function getProjectionRange(
   return { min, max };
 }
 
-function extractMeshTriangles(mesh: THREE.Mesh): number[] {
+function extractMeshTriangles(mesh: THREE.Mesh): Float32Array {
   const geometry = mesh.geometry;
   const position = geometry.getAttribute("position");
 
@@ -205,11 +217,22 @@ function extractMeshTriangles(mesh: THREE.Mesh): number[] {
   mesh.updateMatrixWorld(true);
 
   const index = geometry.getIndex();
-  const vertices: number[] = [];
+  const triangleCount = index
+    ? Math.floor(index.count / 3)
+    : Math.floor(position.count / 3);
+
+  const vertices = new Float32Array(triangleCount * 9);
+  let outputIndex = 0;
 
   const a = new THREE.Vector3();
   const b = new THREE.Vector3();
   const c = new THREE.Vector3();
+
+  function appendVertex(vertex: THREE.Vector3): void {
+    vertices[outputIndex++] = vertex.x;
+    vertices[outputIndex++] = vertex.y;
+    vertices[outputIndex++] = vertex.z;
+  }
 
   if (index) {
     for (let i = 0; i < index.count; i += 3) {
@@ -223,9 +246,9 @@ function extractMeshTriangles(mesh: THREE.Mesh): number[] {
         mesh.matrixWorld
       );
 
-      appendVertex(vertices, a);
-      appendVertex(vertices, b);
-      appendVertex(vertices, c);
+      appendVertex(a);
+      appendVertex(b);
+      appendVertex(c);
     }
 
     return vertices;
@@ -236,16 +259,16 @@ function extractMeshTriangles(mesh: THREE.Mesh): number[] {
     b.fromBufferAttribute(position, i + 1).applyMatrix4(mesh.matrixWorld);
     c.fromBufferAttribute(position, i + 2).applyMatrix4(mesh.matrixWorld);
 
-    appendVertex(vertices, a);
-    appendVertex(vertices, b);
-    appendVertex(vertices, c);
+    appendVertex(a);
+    appendVertex(b);
+    appendVertex(c);
   }
 
   return vertices;
 }
 
-function extractPlaneFrame(request: SliceStackRequest): number[] {
-  return [
+function extractPlaneFrame(request: SliceStackRequest): Float32Array {
+  return new Float32Array([
     request.planeOrigin.x,
     request.planeOrigin.y,
     request.planeOrigin.z,
@@ -258,7 +281,7 @@ function extractPlaneFrame(request: SliceStackRequest): number[] {
     request.planeNormal.x,
     request.planeNormal.y,
     request.planeNormal.z,
-  ];
+  ]);
 }
 
 function convertWasmSliceStackResult(
@@ -293,7 +316,7 @@ function convertWasmSliceStackResult(
 }
 
 function convertFlatSegments(
-  segments: number[],
+  segments: Float32Array,
   startSegment: number,
   endSegment: number
 ): SliceResult["segments"] {
@@ -313,8 +336,4 @@ function convertFlatSegments(
   }
 
   return result;
-}
-
-function appendVertex(vertices: number[], vertex: THREE.Vector3): void {
-  vertices.push(vertex.x, vertex.y, vertex.z);
 }

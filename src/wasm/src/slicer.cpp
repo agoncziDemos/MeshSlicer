@@ -3,8 +3,8 @@
 #include <chrono>
 #include <vector>
 
-#include "utils/slicer_candidates.hpp"
 #include "utils/slicer_geometry.hpp"
+#include "utils/slicer_sweep.hpp"
 #include "utils/triangle_buffer.hpp"
 
 namespace {
@@ -62,29 +62,27 @@ SliceStackResult computeSavedSliceStack(const SliceStackRequest& request) {
 
     const int sliceCount = request.sliceCount > 0 ? request.sliceCount : 1;
 
-    SliceCandidateTiming timing;
-
     const auto nativeComputeStart = Clock::now();
 
-    appendSliceStackSegmentsFromCandidates(
+    appendSliceStackSegments(
         savedVertices,
         centerPlaneFrame,
         sliceCount,
         request.sliceSpacing,
         result.segments,
-        result.layerSegmentOffsets,
-        &timing
+        result.layerSegmentOffsets
     );
 
     const auto nativeComputeEnd = Clock::now();
 
-    result.candidateBuildTimeMs = timing.candidateBuildTimeMs;
-    result.sliceIntersectionTimeMs = timing.sliceIntersectionTimeMs;
-    result.segmentMergeTimeMs = timing.segmentMergeTimeMs;
     result.nativeComputeTimeMs = elapsedMilliseconds(
         nativeComputeStart,
         nativeComputeEnd
     );
+
+    result.candidateBuildTimeMs = 0.0;
+    result.sliceIntersectionTimeMs = result.nativeComputeTimeMs;
+    result.segmentMergeTimeMs = 0.0;
 
     return result;
 }

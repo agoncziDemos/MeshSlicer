@@ -2,8 +2,8 @@
 
 #include <vector>
 
+#include "utils/slicer_candidates.hpp"
 #include "utils/slicer_geometry.hpp"
-#include "utils/slicer_sweep.hpp"
 
 namespace {
 
@@ -47,7 +47,7 @@ SliceStackResult computeSliceStack(
 
     const int sliceCount = request.sliceCount > 0 ? request.sliceCount : 1;
 
-    appendSliceStackSegments(
+    appendSliceStackSegmentsFromCandidates(
         savedVertices,
         centerPlaneFrame,
         sliceCount,

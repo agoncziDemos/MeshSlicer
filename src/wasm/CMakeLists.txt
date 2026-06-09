@@ -10,7 +10,7 @@ add_executable(slicer
   src/slicer.cpp
   src/utils/vec3.cpp
   src/utils/slicer_geometry.cpp
-  src/utils/slicer_sweep.cpp
+  src/utils/slicer_candidates.cpp
   wasm/slicer_module.cpp
 )
 
@@ -22,15 +22,20 @@ target_include_directories(slicer PRIVATE
 if(EMSCRIPTEN)
   target_compile_options(slicer PRIVATE
     -O3
+    -pthread
   )
 
   target_link_options(slicer PRIVATE
     "SHELL:-O3"
+    "SHELL:-pthread"
     "SHELL:--bind"
+    "SHELL:-s USE_PTHREADS=1"
+    "SHELL:-s PTHREAD_POOL_SIZE=8"
     "SHELL:-s MODULARIZE=1"
     "SHELL:-s EXPORT_ES6=1"
     "SHELL:-s ENVIRONMENT=web"
-    "SHELL:-s ALLOW_MEMORY_GROWTH=1"
+    "SHELL:-s ALLOW_MEMORY_GROWTH=0"
+    "SHELL:-s INITIAL_MEMORY=1024MB"
   )
 endif()
 

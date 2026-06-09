@@ -1,22 +1,22 @@
 import * as THREE from "three";
 import JSZip from "jszip";
-import "./style.css";
+import "../style.css";
 
-import { loadStlFile } from "./loaders/loadStlFile.ts";
-import { getPlaneSizeFromMesh } from "./mesh/meshPlacement.ts";
-import { PlanePlacementController } from "./plane/PlanePlacementController.ts";
-import { SlicingPlane } from "./plane/SlicingPlane.ts";
+import { loadStlFile } from "../engine/loaders/loadStlFile.ts";
+import { getPlaneSizeFromMesh } from "../engine/mesh/meshPlacement.ts";
+import { PlanePlacementController } from "../engine/plane/PlanePlacementController.ts";
+import { SlicingPlane } from "../engine/plane/SlicingPlane.ts";
 import {
   computeSlice,
   computeSliceStack,
   type SliceResult,
   type SliceStackLayer,
   type SliceStackResult,
-} from "./slicing/computeSlice.ts";
-import { computeWasmSliceStack } from "./slicing/slicerModule.ts";
-import { CrossSectionView } from "./ui/CrossSectionView.ts";
-import { Toolbar, type SliceEngine } from "./ui/Toolbar.ts";
-import { Viewer } from "./viewer/Viewer.ts";
+} from "../engine/slicing/computeSlice.ts";
+import { computeWasmSliceStack } from "../engine/slicing/slicerModule.ts";
+import { CrossSectionView } from "../ui/CrossSectionView.ts";
+import { Toolbar, type SliceEngine } from "../ui/Toolbar.ts";
+import { Viewer } from "../engine/viewer/Viewer.ts";
 
 const EXPORT_SCALE = 5;
 const EXPORT_LINE_WIDTH_PX = 2;

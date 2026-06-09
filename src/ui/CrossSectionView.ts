@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import type { SliceResult } from "../slicing/computeSlice.ts";
+import type { SliceResult } from "../engine/slicing/computeSlice.ts";
 
 type CrossSectionViewOptions = {
   id: string;

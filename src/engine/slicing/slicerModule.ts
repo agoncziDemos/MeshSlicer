@@ -1,7 +1,7 @@
 import * as THREE from "three";
 
 import type { SlicingPlane } from "../plane/SlicingPlane.ts";
-import createSlicerModule from "../wasm/dist/slicer.js";
+import createSlicerModule from "../../wasm/dist/slicer.js";
 import type {
   SliceResult,
   SliceStackLayer,
@@ -39,7 +39,7 @@ let slicerModulePromise: ReturnType<typeof createSlicerModule> | null = null;
 function getSlicerModule(): ReturnType<typeof createSlicerModule> {
   slicerModulePromise ??= createSlicerModule({
     locateFile: (path) => {
-      return new URL(`../wasm/dist/${path}`, import.meta.url).href;
+      return new URL(`../../wasm/dist/${path}`, import.meta.url).href;
     },
   });
 

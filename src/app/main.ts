@@ -294,7 +294,7 @@ function getComputeStatusText(
     return `C++ segment generation: ${stack.sliceIntersectionTimeMs.toFixed(2)} ms`;
   }
 
-  return `${getSliceEngineLabel(sliceEngine)} frontend compute: ${frontendCallTimeMs.toFixed(2)} ms`;
+  return `${getSliceEngineLabel(sliceEngine)} segment generation: ${frontendCallTimeMs.toFixed(2)} ms`;
 }
 
 async function downloadSliceLayersAsPngZip(

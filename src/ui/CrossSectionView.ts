@@ -1,19 +1,35 @@
 import * as THREE from "three";
 import type { SliceResult } from "../slicing/computeSlice.ts";
 
+type CrossSectionViewOptions = {
+  id: string;
+  label: string;
+  verticalPosition: "top" | "bottom";
+};
+
 export class CrossSectionView {
   private readonly container: HTMLDivElement;
   private readonly canvas: HTMLCanvasElement;
   private readonly ctx: CanvasRenderingContext2D;
   private readonly label: HTMLDivElement;
 
-  constructor(app: HTMLDivElement) {
+  constructor(app: HTMLDivElement, options: CrossSectionViewOptions) {
     this.container = document.createElement("div");
-    this.container.id = "cross-section-view";
+    this.container.id = options.id;
+
+    this.container.style.position = "absolute";
+    this.container.style.right = "16px";
+    this.container.style.zIndex = "10";
+
+    if (options.verticalPosition === "top") {
+      this.container.style.top = "64px";
+    } else {
+      this.container.style.bottom = "16px";
+    }
 
     this.label = document.createElement("div");
-    this.label.id = "cross-section-label";
-    this.label.textContent = "Cross Section";
+    this.label.id = `${options.id}-label`;
+    this.label.textContent = options.label;
 
     this.canvas = document.createElement("canvas");
     this.canvas.width = 300;

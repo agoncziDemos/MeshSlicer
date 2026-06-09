@@ -67,7 +67,6 @@ export class PlaneGizmo {
     arrowGroup.add(shaft);
     arrowGroup.add(head);
 
-    // Invisible pick volume. Easier to grab without making the arrow huge.
     const pickMaterial = new THREE.MeshBasicMaterial({
       transparent: true,
       opacity: 0,
@@ -97,34 +96,8 @@ export class PlaneGizmo {
     const radius = size;
     const arcAngle = Math.PI / 30;
 
-    // These four arrows sit on two invisible rotation circles:
-    // - local X rotation circle: arrows near +Y and -Y
-    // - local Y rotation circle: arrows near +X and -X
-    //
-    // The plane normal is local +Z, so rotating around local X/Y tilts the plane.
-    // Rotation around local Z would spin the circular plane in place, which is
-    // visually pointless for slicing.
-
-    const rotateAroundX1 = this.createRotationArrow({
+    const redPositiveX = this.createRotationArrow({
       color: 0xcc3333,
-      axis: new THREE.Vector3(1, 0, 0),
-      radius,
-      startAngle: 0 - arcAngle / 2,
-      endAngle: 0 + arcAngle / 2,
-      circlePlane: "yz",
-    });
-
-    const rotateAroundX2 = this.createRotationArrow({
-      color: 0xcc3333,
-      axis: new THREE.Vector3(1, 0, 0),
-      radius,
-      startAngle: Math.PI - arcAngle / 2,
-      endAngle: Math.PI + arcAngle / 2,
-      circlePlane: "yz",
-    });
-
-    const rotateAroundY1 = this.createRotationArrow({
-      color: 0x33aa33,
       axis: new THREE.Vector3(0, 1, 0),
       radius,
       startAngle: 0 - arcAngle / 2,
@@ -132,8 +105,8 @@ export class PlaneGizmo {
       circlePlane: "xz",
     });
 
-    const rotateAroundY2 = this.createRotationArrow({
-      color: 0x33aa33,
+    const redNegativeX = this.createRotationArrow({
+      color: 0xcc3333,
       axis: new THREE.Vector3(0, 1, 0),
       radius,
       startAngle: Math.PI - arcAngle / 2,
@@ -141,16 +114,34 @@ export class PlaneGizmo {
       circlePlane: "xz",
     });
 
-    this.group.add(rotateAroundX1);
-    this.group.add(rotateAroundX2);
-    this.group.add(rotateAroundY1);
-    this.group.add(rotateAroundY2);
+    const greenPositiveY = this.createRotationArrow({
+      color: 0x33aa33,
+      axis: new THREE.Vector3(1, 0, 0),
+      radius,
+      startAngle: 0 - arcAngle / 2,
+      endAngle: 0 + arcAngle / 2,
+      circlePlane: "yz",
+    });
+
+    const greenNegativeY = this.createRotationArrow({
+      color: 0x33aa33,
+      axis: new THREE.Vector3(1, 0, 0),
+      radius,
+      startAngle: Math.PI - arcAngle / 2,
+      endAngle: Math.PI + arcAngle / 2,
+      circlePlane: "yz",
+    });
+
+    this.group.add(redPositiveX);
+    this.group.add(redNegativeX);
+    this.group.add(greenPositiveY);
+    this.group.add(greenNegativeY);
 
     this.pickObjects.push(
-      rotateAroundX1,
-      rotateAroundX2,
-      rotateAroundY1,
-      rotateAroundY2
+      redPositiveX,
+      redNegativeX,
+      greenPositiveY,
+      greenNegativeY
     );
   }
 
@@ -248,7 +239,6 @@ export class PlaneGizmo {
     group.add(tube);
     group.add(head);
 
-    // Invisible pick sphere around the small arc.
     const pickMaterial = new THREE.MeshBasicMaterial({
       transparent: true,
       opacity: 0,

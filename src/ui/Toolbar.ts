@@ -285,15 +285,17 @@ function createHelpTooltip(): HTMLDivElement {
 
   const tooltip = document.createElement("div");
   tooltip.id = "help-tooltip-panel";
-  tooltip.innerHTML = [
-    "<strong>How to use MeshSlicer</strong>",
-    "1. Load an STL file or choose a sample.",
-    "2. Click Create Plane.",
-    "3. Click two points on the mesh to create the slicing plane.",
-    "4. Move or rotate the plane to update the cross-section preview.",
-    "5. Choose TS or WASM, adjust the slice step, then click Slice.",
-    "6. Download the generated PNG slice stack.",
-  ].join("<br />");
+  tooltip.innerHTML = `
+    <strong>How to use MeshSlicer</strong>
+    <ol>
+      <li>Load an STL file or choose a sample.</li>
+      <li>Click Create Plane.</li>
+      <li>Click two points on the mesh to create the slicing plane.</li>
+      <li>Move or rotate the plane to update the cross-section preview.</li>
+      <li>Choose TS or WASM to compare TypeScript slicing against the C++ slicer running through WebAssembly.</li>
+      <li>Adjust the slice step, click Slice, then download the generated PNG slice stack.</li>
+    </ol>
+  `;
 
   container.appendChild(button);
   container.appendChild(tooltip);
@@ -335,7 +337,7 @@ function applyHelpTooltipStyles(
   tooltip.style.position = "absolute";
   tooltip.style.left = "0";
   tooltip.style.top = "34px";
-  tooltip.style.width = "300px";
+  tooltip.style.width = "360px";
   tooltip.style.padding = "10px 12px";
   tooltip.style.borderRadius = "8px";
   tooltip.style.background = "rgba(255, 255, 255, 0.96)";
@@ -346,6 +348,12 @@ function applyHelpTooltipStyles(
   tooltip.style.lineHeight = "1.45";
   tooltip.style.pointerEvents = "auto";
   tooltip.style.userSelect = "text";
+
+  const list = tooltip.querySelector("ol");
+  if (list instanceof HTMLOListElement) {
+    list.style.margin = "8px 0 0 18px";
+    list.style.padding = "0";
+  }
 
   let hideTooltipTimeout: number | undefined;
 

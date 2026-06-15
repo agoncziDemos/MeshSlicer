@@ -344,13 +344,29 @@ function applyHelpTooltipStyles(
   tooltip.style.color = "#222222";
   tooltip.style.font = "13px system-ui, sans-serif";
   tooltip.style.lineHeight = "1.45";
-  tooltip.style.pointerEvents = "none";
+  tooltip.style.pointerEvents = "auto";
+  tooltip.style.userSelect = "text";
 
-  container.addEventListener("mouseenter", () => {
+  let hideTooltipTimeout: number | undefined;
+
+  const showTooltip = (): void => {
+    if (hideTooltipTimeout !== undefined) {
+      window.clearTimeout(hideTooltipTimeout);
+      hideTooltipTimeout = undefined;
+    }
+
     tooltip.style.display = "block";
-  });
+  };
 
-  container.addEventListener("mouseleave", () => {
-    tooltip.style.display = "none";
-  });
+  const scheduleHideTooltip = (): void => {
+    hideTooltipTimeout = window.setTimeout(() => {
+      tooltip.style.display = "none";
+      hideTooltipTimeout = undefined;
+    }, 120);
+  };
+
+  button.addEventListener("mouseenter", showTooltip);
+  button.addEventListener("mouseleave", scheduleHideTooltip);
+  tooltip.addEventListener("mouseenter", showTooltip);
+  tooltip.addEventListener("mouseleave", scheduleHideTooltip);
 }

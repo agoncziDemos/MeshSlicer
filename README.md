@@ -119,21 +119,6 @@ The Vite config sets the cross-origin isolation headers needed for Emscripten pt
 5. Click Slice.
 6. Download the PNG zip.
 
-## Current Limitations
-
-* The output is raw line segments, not reconstructed closed contours.
-* The mesh is copied into a flat buffer before entering WASM.
-* The WASM result is converted back into JavaScript arrays before export.
-* PNG generation is separate from the slicing computation.
-
-## Future Work
-
-* Reconstruct connected contours from raw slice segments.
-* Add tests comparing TypeScript and WASM output.
-* Return typed arrays or WASM memory views instead of JavaScript arrays.
-* Add benchmark meshes and repeatable timing runs.
-* Deploy the demo with GitHub Pages.
-
 ## License
 
 No license has been selected yet.

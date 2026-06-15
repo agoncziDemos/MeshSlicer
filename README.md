@@ -1,4 +1,6 @@
-# MeshSlicer Demo
+﻿# MeshSlicer Demo
+
+Live demo: [MeshSlicer](https://agonczidemos.github.io/MeshSlicer/)
 
 MeshSlicer Demo is a browser-based demo for interactive STL slicing. It loads a triangle mesh, lets the user place and orient a slicing plane, computes parallel cross-section layers, and exports the generated slices as PNG files.
 

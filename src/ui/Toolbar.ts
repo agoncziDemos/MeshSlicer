@@ -1,5 +1,10 @@
 export type SliceEngine = "typescript" | "wasm";
 
+export type SampleStlOption = {
+  label: string;
+  path: string;
+};
+
 export class Toolbar {
   private readonly fileInput: HTMLInputElement;
   private readonly fileLabel: HTMLSpanElement;
@@ -11,13 +16,16 @@ export class Toolbar {
   private sliceEngine: SliceEngine = "wasm";
 
   private loadStlCallback: ((file: File) => void | Promise<void>) | null = null;
+  private loadSampleCallback:
+    | ((sample: SampleStlOption) => void | Promise<void>)
+    | null = null;
   private createPlaneCallback: (() => void) | null = null;
   private makeVerticalCallback: (() => void) | null = null;
   private sliceCallback:
     | ((sliceStep: number, sliceEngine: SliceEngine) => void | Promise<void>)
     | null = null;
 
-  constructor(app: HTMLDivElement) {
+  constructor(app: HTMLDivElement, sampleOptions: SampleStlOption[] = []) {
     this.fileInput = document.createElement("input");
     this.fileInput.type = "file";
     this.fileInput.accept = ".stl";
@@ -25,6 +33,10 @@ export class Toolbar {
 
     const loadButton = document.createElement("button");
     loadButton.textContent = "Load STL";
+
+    const sampleMenu = createSampleMenu(sampleOptions, (sample) => {
+      this.loadSampleCallback?.(sample);
+    });
 
     const createPlaneButton = document.createElement("button");
     createPlaneButton.textContent = "Create Plane";
@@ -64,6 +76,7 @@ export class Toolbar {
     const toolbar = document.createElement("div");
     toolbar.id = "toolbar";
     toolbar.appendChild(loadButton);
+    toolbar.appendChild(sampleMenu);
     toolbar.appendChild(createPlaneButton);
     toolbar.appendChild(makeVerticalButton);
     toolbar.appendChild(this.sliceEngineToggle);
@@ -127,6 +140,12 @@ export class Toolbar {
     this.loadStlCallback = callback;
   }
 
+  onLoadSample(
+    callback: (sample: SampleStlOption) => void | Promise<void>
+  ): void {
+    this.loadSampleCallback = callback;
+  }
+
   onCreatePlane(callback: () => void): void {
     this.createPlaneCallback = callback;
   }
@@ -159,6 +178,101 @@ export class Toolbar {
   }
 }
 
+function createSampleMenu(
+  sampleOptions: SampleStlOption[],
+  onSampleSelected: (sample: SampleStlOption) => void
+): HTMLDivElement {
+  const container = document.createElement("div");
+  container.id = "sample-menu";
+
+  const button = document.createElement("button");
+  button.type = "button";
+  button.textContent = "Load Sample STL";
+
+  const panel = document.createElement("div");
+  panel.id = "sample-menu-panel";
+
+  for (const sample of sampleOptions) {
+    const sampleButton = document.createElement("button");
+    sampleButton.type = "button";
+    sampleButton.textContent = sample.label;
+
+    sampleButton.addEventListener("click", () => {
+      panel.style.display = "none";
+      onSampleSelected(sample);
+    });
+
+    panel.appendChild(sampleButton);
+  }
+
+  button.addEventListener("click", (event) => {
+    event.stopPropagation();
+
+    panel.style.display = panel.style.display === "block" ? "none" : "block";
+  });
+
+  panel.addEventListener("click", (event) => {
+    event.stopPropagation();
+  });
+
+  document.addEventListener("click", () => {
+    panel.style.display = "none";
+  });
+
+  container.appendChild(button);
+  container.appendChild(panel);
+
+  applySampleMenuStyles(container, panel);
+
+  return container;
+}
+
+function applySampleMenuStyles(
+  container: HTMLDivElement,
+  panel: HTMLDivElement
+): void {
+  container.style.position = "relative";
+  container.style.display = "inline-flex";
+
+  panel.style.display = "none";
+  panel.style.position = "absolute";
+  panel.style.left = "0";
+  panel.style.top = "34px";
+  panel.style.minWidth = "170px";
+  panel.style.padding = "6px";
+  panel.style.borderRadius = "8px";
+  panel.style.background = "rgba(255, 255, 255, 0.98)";
+  panel.style.border = "1px solid #cccccc";
+  panel.style.boxShadow = "0 4px 14px rgba(0, 0, 0, 0.22)";
+  panel.style.zIndex = "30";
+
+  for (const child of Array.from(panel.children)) {
+    if (!(child instanceof HTMLButtonElement)) {
+      continue;
+    }
+
+    child.style.display = "block";
+    child.style.width = "100%";
+    child.style.textAlign = "left";
+    child.style.margin = "0";
+    child.style.padding = "6px 10px";
+    child.style.border = "none";
+    child.style.borderRadius = "6px";
+    child.style.background = "transparent";
+    child.style.color = "#222222";
+    child.style.cursor = "pointer";
+    child.style.font = "13px system-ui, sans-serif";
+
+    child.addEventListener("mouseenter", () => {
+      child.style.background = "rgba(0, 0, 0, 0.08)";
+    });
+
+    child.addEventListener("mouseleave", () => {
+      child.style.background = "transparent";
+    });
+  }
+}
+
 function createHelpTooltip(): HTMLDivElement {
   const container = document.createElement("div");
   container.id = "help-tooltip";
@@ -173,7 +287,7 @@ function createHelpTooltip(): HTMLDivElement {
   tooltip.id = "help-tooltip-panel";
   tooltip.innerHTML = [
     "<strong>How to use MeshSlicer</strong>",
-    "1. Load an STL file.",
+    "1. Load an STL file or choose a sample.",
     "2. Click Create Plane.",
     "3. Click two points on the mesh to create the slicing plane.",
     "4. Move or rotate the plane to update the cross-section preview.",

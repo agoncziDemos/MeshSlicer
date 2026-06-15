@@ -19,11 +19,26 @@ import {
   type WasmComputedSliceStack,
 } from "../engine/slicing/slicerModule.ts";
 import { CrossSectionView } from "../ui/CrossSectionView.ts";
-import { Toolbar, type SliceEngine } from "../ui/Toolbar.ts";
+import {
+  Toolbar,
+  type SampleStlOption,
+  type SliceEngine,
+} from "../ui/Toolbar.ts";
 import { Viewer } from "../engine/viewer/Viewer.ts";
 
 const EXPORT_SCALE = 5;
 const EXPORT_LINE_WIDTH_PX = 2;
+
+const DEFAULT_STL_SAMPLES: SampleStlOption[] = [
+  {
+    label: "Gyroid",
+    path: "samples/Gyroid.stl",
+  },
+  {
+    label: "Stanford Bunny",
+    path: "samples/Stanford_Bunny.stl",
+  },
+];
 
 const app = document.querySelector<HTMLDivElement>("#app");
 
@@ -32,7 +47,7 @@ if (!app) {
 }
 
 const viewer = new Viewer(app);
-const toolbar = new Toolbar(app);
+const toolbar = new Toolbar(app, DEFAULT_STL_SAMPLES);
 
 const crossSectionView = new CrossSectionView(app, {
   id: "cross-section-view",
@@ -89,38 +104,11 @@ const planeController = new PlanePlacementController({
 });
 
 toolbar.onLoadStl(async (file) => {
-  toolbar.setFileLabel(`Loading ${file.name}...`);
-  toolbar.setStatus("Loading STL...");
+  await loadMeshFromFile(file);
+});
 
-  currentFileName = file.name.replace(/\.[^.]+$/, "") || "slices";
-
-  const geometry = await loadStlFile(file);
-
-  if (currentMesh) {
-    viewer.scene.remove(currentMesh);
-    currentMesh.geometry.dispose();
-  }
-
-  if (currentPlane) {
-    viewer.scene.remove(currentPlane.group);
-    currentPlane.dispose();
-    currentPlane = null;
-    planeController.clearPlane();
-  }
-
-  currentMesh = new THREE.Mesh(geometry, meshMaterial);
-  viewer.scene.add(currentMesh);
-  viewer.frameGeometry(geometry);
-
-  crossSectionView.clear();
-
-  toolbar.setStatus("Saving mesh to WASM...");
-
-  const savedMesh = await saveWasmMesh(currentMesh);
-  savedWasmFaceCount = savedMesh.faceCount;
-
-  toolbar.setFileLabel(file.name);
-  toolbar.setStatus(`Loaded ${file.name}. Saved ${savedWasmFaceCount} faces to WASM.`);
+toolbar.onLoadSample(async (sample) => {
+  await loadMeshFromSample(sample);
 });
 
 toolbar.onCreatePlane(() => {
@@ -198,6 +186,77 @@ toolbar.onSlice(async (sliceStep, sliceEngine) => {
       getComputeStatusText(sliceEngine, frontendCallTimeMs, stack)
   );
 });
+
+async function loadMeshFromSample(sample: SampleStlOption): Promise<void> {
+  const sampleUrl = new URL(
+    `${import.meta.env.BASE_URL}${sample.path}`,
+    window.location.href
+  );
+
+  toolbar.setFileLabel(`Loading ${sample.label}...`);
+  toolbar.setStatus("Loading sample STL...");
+
+  try {
+    const response = await fetch(sampleUrl);
+
+    if (!response.ok) {
+      throw new Error(`Failed to load sample STL: ${sample.path}`);
+    }
+
+    const blob = await response.blob();
+    const fileName = getFileNameFromSamplePath(sample.path);
+    const file = new File([blob], fileName, {
+      type: "model/stl",
+    });
+
+    await loadMeshFromFile(file, sample.label);
+  } catch (error) {
+    console.error(error);
+    toolbar.setStatus(`Failed to load sample: ${sample.label}`);
+  }
+}
+
+async function loadMeshFromFile(
+  file: File,
+  displayName = file.name
+): Promise<void> {
+  toolbar.setFileLabel(`Loading ${displayName}...`);
+  toolbar.setStatus("Loading STL...");
+
+  currentFileName = displayName.replace(/\.[^.]+$/, "") || "slices";
+
+  const geometry = await loadStlFile(file);
+
+  if (currentMesh) {
+    viewer.scene.remove(currentMesh);
+    currentMesh.geometry.dispose();
+  }
+
+  if (currentPlane) {
+    viewer.scene.remove(currentPlane.group);
+    currentPlane.dispose();
+    currentPlane = null;
+    planeController.clearPlane();
+  }
+
+  currentMesh = new THREE.Mesh(geometry, meshMaterial);
+  viewer.scene.add(currentMesh);
+  viewer.frameGeometry(geometry);
+
+  crossSectionView.clear();
+
+  toolbar.setStatus("Saving mesh to WASM...");
+
+  const savedMesh = await saveWasmMesh(currentMesh);
+  savedWasmFaceCount = savedMesh.faceCount;
+
+  toolbar.setFileLabel(displayName);
+  toolbar.setStatus(`Loaded ${displayName}. Saved ${savedWasmFaceCount} faces to WASM.`);
+}
+
+function getFileNameFromSamplePath(path: string): string {
+  return path.split("/").at(-1) || "sample.stl";
+}
 
 async function computeSelectedSliceStack(
   mesh: THREE.Mesh,
